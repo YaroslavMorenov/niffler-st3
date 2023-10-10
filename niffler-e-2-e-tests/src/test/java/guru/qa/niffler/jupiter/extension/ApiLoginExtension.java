@@ -6,9 +6,10 @@ import guru.qa.niffler.api.AuthServiceClient;
 import guru.qa.niffler.api.context.CookieContext;
 import guru.qa.niffler.api.context.SessionStorageContext;
 import guru.qa.niffler.config.Config;
-import guru.qa.niffler.db.model.auth.AuthUserEntity;
 import guru.qa.niffler.jupiter.annotation.ApiLogin;
-import guru.qa.niffler.jupiter.annotation.DBUser;
+import guru.qa.niffler.jupiter.annotation.GenerateUser;
+import guru.qa.niffler.jupiter.annotation.GeneratedUser;
+import guru.qa.niffler.model.UserJson;
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -16,7 +17,7 @@ import org.openqa.selenium.Cookie;
 
 import java.io.IOException;
 
-import static guru.qa.niffler.jupiter.extension.DBUserExtension.NAMESPACE;
+import static guru.qa.niffler.jupiter.extension.CreateUserExtension.NESTED;
 
 public class ApiLoginExtension implements BeforeEachCallback, AfterTestExecutionCallback {
 
@@ -24,17 +25,18 @@ public class ApiLoginExtension implements BeforeEachCallback, AfterTestExecution
 
     @Override
     public void beforeEach(ExtensionContext extensionContext) throws Exception {
-        ApiLogin annotationLogin = extensionContext.getRequiredTestMethod().getAnnotation(ApiLogin.class);
-        if (annotationLogin != null) {
-            String userName = annotationLogin.username();
-            String password = annotationLogin.password();
-            DBUser dbUser = extensionContext.getRequiredTestMethod().getAnnotation(DBUser.class);
-            if (dbUser != null) {
-                AuthUserEntity userFromTest = extensionContext.getStore(NAMESPACE).get(extensionContext.getUniqueId(), AuthUserEntity.class);
-                userName = userFromTest.getUsername();
-                password = userFromTest.getPassword();
+        ApiLogin annotation = extensionContext.getRequiredTestMethod().getAnnotation(ApiLogin.class);
+        if (annotation != null) {
+            GenerateUser user = annotation.user();
+            if (user.handleAnnotation()) {
+                UserJson createdUser = extensionContext.getStore(NESTED).get(
+                        GeneratedUser.Selector.NESTED,
+                        UserJson.class
+                );
+                doLogin(createdUser.getUsername(), createdUser.getPassword());
+            } else {
+                doLogin(annotation.username(), annotation.password());
             }
-            doLogin(userName, password);
         }
     }
 
