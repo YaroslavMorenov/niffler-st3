@@ -4,6 +4,7 @@ import guru.qa.niffler.data.CurrencyValues;
 import guru.qa.niffler.data.UserEntity;
 import guru.qa.niffler.data.repository.UserRepository;
 import guru.qa.niffler.ex.NotFoundException;
+import guru.qa.niffler.model.FriendJson;
 import guru.qa.niffler.model.FriendState;
 import guru.qa.niffler.model.UserJson;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,19 +12,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opentest4j.AssertionFailedError;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static guru.qa.niffler.model.FriendState.FRIEND;
-import static guru.qa.niffler.model.FriendState.INVITE_SENT;
+import static guru.qa.niffler.model.FriendState.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -36,22 +34,20 @@ class UserDataServiceTest {
 
     private UserDataService testedObject;
 
-    private UUID mainTestUserUuid = UUID.randomUUID();
-    private String mainTestUserName = "dima";
+    private final UUID mainTestUserUuid = UUID.randomUUID();
+    private final String mainTestUserName = "dima";
     private UserEntity mainTestUser;
 
-    private UUID secondTestUserUuid = UUID.randomUUID();
-    private String secondTestUserName = "barsik";
+    private final UUID secondTestUserUuid = UUID.randomUUID();
+    private final String secondTestUserName = "barsik";
     private UserEntity secondTestUser;
 
-    private UUID thirdTestUserUuid = UUID.randomUUID();
-    private String thirdTestUserName = "emma";
+    private final UUID thirdTestUserUuid = UUID.randomUUID();
+    private final String thirdTestUserName = "emma";
     private UserEntity thirdTestUser;
 
 
-    private String notExistingUser = "not_existing_user";
-
-
+    private final String notExistingUser = "not_existing_user";
 
 
     @BeforeEach
@@ -165,6 +161,105 @@ class UserDataServiceTest {
                 .map(UserJson::getFriendState)
                 .toList()
                 .containsAll(expectedStates));
+    }
+
+    @Test
+    void invitationsShouldBeInviteReceived(@Mock UserRepository userRepository) {
+        thirdTestUser.addFriends(true, secondTestUser);
+        secondTestUser.addInvites(thirdTestUser);
+
+        testedObject = new UserDataService(userRepository);
+
+        when(userRepository.findByUsername(eq(secondTestUserName)))
+                .thenReturn(secondTestUser);
+
+        final List<UserJson> invitations = testedObject.invitations(secondTestUserName);
+        assertEquals(1, invitations.size());
+        assertEquals(INVITE_RECEIVED, invitations.get(0).getFriendState());
+    }
+
+    @Test
+    void addFriendShouldBeInviteSent(@Mock UserRepository userRepository) {
+        FriendJson friendJson = new FriendJson();
+        friendJson.setUsername(secondTestUserName);
+
+        when(userRepository.findByUsername(eq(mainTestUserName)))
+                .thenReturn(mainTestUser);
+        when(userRepository.findByUsername(eq(secondTestUserName)))
+                .thenReturn(secondTestUser);
+
+        testedObject = new UserDataService(userRepository);
+        final UserJson addFriend = testedObject.addFriend(mainTestUserName, friendJson);
+        final UserEntity main = testedObject.getRequiredUser(mainTestUserName);
+        assertEquals(secondTestUserName, main.getFriends().get(0).getFriend().getUsername(), "user " + mainTestUserName + "should have friend " + secondTestUserName);
+        assertEquals(INVITE_SENT, addFriend.getFriendState(), "user " + secondTestUserName + "should state INVITE SENT");
+    }
+
+    @Test
+    void acceptInvitationShouldBeUpdatedAfterAddFriend(@Mock UserRepository userRepository) {
+        FriendJson friendJson = new FriendJson();
+        friendJson.setUsername(secondTestUserName);
+        secondTestUser.addFriends(true, mainTestUser);
+        mainTestUser.addInvites(secondTestUser);
+
+        when(userRepository.findByUsername(eq(mainTestUserName)))
+                .thenReturn(mainTestUser);
+        when(userRepository.findByUsername(eq(secondTestUserName)))
+                .thenReturn(secondTestUser);
+
+        testedObject = new UserDataService(userRepository);
+        final List<UserJson> result = testedObject.acceptInvitation(mainTestUserName, friendJson);
+        assertEquals(1, result.size());
+        assertEquals(FRIEND, result.get(0).getFriendState(), "check friend state");
+        verify(userRepository, times(1)).save(any(UserEntity.class));
+    }
+
+    @Test
+    void declineInvitationShouldBeUpdatedAfterDecline(@Mock UserRepository userRepository) {
+        FriendJson friendJson = new FriendJson();
+        friendJson.setUsername(secondTestUserName);
+        secondTestUser.addFriends(true, mainTestUser);
+        mainTestUser.addInvites(secondTestUser);
+
+        when(userRepository.findByUsername(eq(mainTestUserName)))
+                .thenReturn(mainTestUser);
+        when(userRepository.findByUsername(eq(secondTestUserName)))
+                .thenReturn(secondTestUser);
+
+        testedObject = new UserDataService(userRepository);
+        final List<UserJson> result = testedObject.declineInvitation(mainTestUserName, friendJson);
+        final UserEntity main = testedObject.getRequiredUser(mainTestUserName);
+        final UserEntity second = testedObject.getRequiredUser(secondTestUserName);
+        assertEquals(0, result.size());
+        assertEquals(0, main.getInvites().size());
+        assertEquals(0, main.getFriends().size());
+        assertEquals(0, second.getInvites().size());
+        assertEquals(0, second.getFriends().size());
+        verify(userRepository, times(2)).save(any(UserEntity.class));
+    }
+
+    @Test
+    void removeFriendShouldBeUpdatedAfterRemove(@Mock UserRepository userRepository) {
+        mainTestUser.addInvites(secondTestUser);
+        mainTestUser.addFriends(false, secondTestUser);
+        secondTestUser.addInvites(mainTestUser);
+        secondTestUser.addFriends(false, mainTestUser);
+
+        when(userRepository.findByUsername(eq(mainTestUserName)))
+                .thenReturn(mainTestUser);
+        when(userRepository.findByUsername(eq(secondTestUserName)))
+                .thenReturn(secondTestUser);
+
+        testedObject = new UserDataService(userRepository);
+        final List<UserJson> result = testedObject.removeFriend(mainTestUserName, secondTestUserName);
+        final UserEntity main = testedObject.getRequiredUser(mainTestUserName);
+        final UserEntity second = testedObject.getRequiredUser(secondTestUserName);
+        assertEquals(0, result.size());
+        assertEquals(0, main.getFriends().size());
+        assertEquals(0, main.getInvites().size());
+        assertEquals(0, second.getInvites().size());
+        assertEquals(0, second.getFriends().size());
+        verify(userRepository, times(2)).save(any(UserEntity.class));
     }
 
     private UserEntity enrichTestUser() {
