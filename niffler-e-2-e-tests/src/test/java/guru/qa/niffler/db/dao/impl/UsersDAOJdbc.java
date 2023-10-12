@@ -237,4 +237,24 @@ public class UsersDAOJdbc implements AuthUserDAO, UserdataUserDAO {
         }
         return user;
     }
+
+    @Override
+    public void setFriendsInUserData(UserDataUserEntity user) {
+        try (Connection conn = userdataDs.getConnection()) {
+            try (PreparedStatement usersPs = conn.prepareStatement(
+                    "UPDATE  users " +
+                            "SET id = ?, currency = ?, firstname = ?, surname = ?, photo = ? " +
+                            "WHERE id = ? ")) {
+                usersPs.setObject(1, user.getId());
+                usersPs.setObject(2, user.getCurrency().name());
+                usersPs.setString(3, user.getFirstname());
+                usersPs.setString(4, user.getSurname());
+                usersPs.setObject(5, user.getPhoto());
+                usersPs.setObject(6, user.getId());
+                usersPs.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

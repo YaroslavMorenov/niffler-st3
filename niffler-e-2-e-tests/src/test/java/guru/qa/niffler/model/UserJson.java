@@ -3,9 +3,9 @@ package guru.qa.niffler.model;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import guru.qa.niffler.db.model.auth.AuthUserEntity;
+import guru.qa.niffler.db.model.userdata.UserDataUserEntity;
 import guru.qa.niffler.jupiter.annotation.User;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 
@@ -132,6 +132,13 @@ public class UserJson {
     }
 
     public static UserJson fromEntity(AuthUserEntity entity) {
+        UserJson usr = new UserJson();
+        usr.setId(entity.getId());
+        usr.setUsername(entity.getUsername());
+        return usr;
+    }
+
+    public static UserJson fromEntity(UserDataUserEntity entity) {
         UserJson usr = new UserJson();
         usr.setId(entity.getId());
         usr.setUsername(entity.getUsername());

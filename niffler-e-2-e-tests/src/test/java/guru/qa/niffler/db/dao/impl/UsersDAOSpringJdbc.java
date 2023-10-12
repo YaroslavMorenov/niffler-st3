@@ -158,4 +158,12 @@ public class UsersDAOSpringJdbc implements AuthUserDAO, UserdataUserDAO {
                 username
         );
     }
+
+    @Override
+    public void setFriendsInUserData(UserDataUserEntity user) {
+        userdataJdbcTpl.update("UPDATE  users " +
+                        "SET id = ?, currency = ?, firstname = ?, surname = ?, photo = ? " +
+                        "WHERE id = ? ", user.getId(), user.getCurrency().name(), user.getFirstname(),
+                user.getSurname(), user.getPhoto(), user.getId());
+    }
 }

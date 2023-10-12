@@ -13,13 +13,19 @@ public class PeoplePage {
     private final ElementsCollection tableRows = $$x("//table//tr");
 
     @Step("Проверяет, что в таблице содержится отправка запроса на добавление в друзья")
-    public PeoplePage checkInvitationToFriendSent() {
+    public PeoplePage checkInvitationToFriendIncome() {
         tableRows.filter(text("Pending invitation")).shouldHave(size(1));
         return this;
     }
 
-    @Step("Проверяет, что в таблице содержится запрос на добавление в друзья от пользователя {name}")
+    @Step("Проверяет, что в таблице содержится отправка запроса на добавление в друзья к пользователю {name}")
     public PeoplePage checkInvitationToFriendSent(String name) {
+        tableRows.find(text(name)).shouldBe(text("Pending invitation"));
+        return this;
+    }
+
+    @Step("Проверяет, что в таблице содержится запрос на добавление в друзья от пользователя {name}")
+    public PeoplePage checkInvitationToFriendIncome(String name) {
         var row = tableRows.find(text(name));
         row.$x(".//div[@data-tooltip-content = 'Submit invitation']").shouldBe(visible);
         row.$x(".//div[@data-tooltip-content = 'Decline invitation']").shouldBe(visible);

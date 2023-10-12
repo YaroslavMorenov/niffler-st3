@@ -29,6 +29,8 @@ public interface Config {
 
     String nifflerAuthUrl();
 
+    String nifflerUserdataUrl();
+
     String getCurrencyGrpcUrl();
 
     int getCurrencyGrpcPort();
