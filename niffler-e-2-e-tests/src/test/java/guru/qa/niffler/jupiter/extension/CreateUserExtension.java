@@ -4,18 +4,18 @@ import guru.qa.niffler.jupiter.annotation.ApiLogin;
 import guru.qa.niffler.jupiter.annotation.GenerateUser;
 import guru.qa.niffler.jupiter.annotation.GeneratedUser;
 import guru.qa.niffler.model.UserJson;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolutionException;
-import org.junit.jupiter.api.extension.ParameterResolver;
+import org.junit.jupiter.api.extension.*;
 
-import java.util.Collections;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static guru.qa.niffler.util.ExtensionUtil.getAllureId;
+
 public abstract class CreateUserExtension implements BeforeEachCallback, ParameterResolver {
+
+    protected static final String DEFAULT_PASSWORD = "12345";
 
     public static final ExtensionContext.Namespace
             NESTED = ExtensionContext.Namespace.create(GeneratedUser.Selector.NESTED),
@@ -26,11 +26,11 @@ public abstract class CreateUserExtension implements BeforeEachCallback, Paramet
         Map<GeneratedUser.Selector, GenerateUser> usersForTest = usersForTest(extensionContext);
         for (Map.Entry<GeneratedUser.Selector, GenerateUser> entry : usersForTest.entrySet()) {
             UserJson user = createUserForTest(entry.getValue());
-            user.setFriends(createFriendsIfPresent(entry.getValue()));
-            user.setIncomeInvitations(createIncomeInvitationsIfPresent(entry.getValue()));
-            user.setOutcomeInvitations(createOutcomeInvitationsIfPresent(entry.getValue()));
+            user.setFriends(createFriendsIfPresent(entry.getValue(), user));
+            user.setIncomeInvitations(createIncomeInvitationsIfPresent(entry.getValue(), user));
+            user.setOutcomeInvitations(createOutcomeInvitationsIfPresent(entry.getValue(), user));
             extensionContext.getStore(ExtensionContext.Namespace.create(entry.getKey()))
-                    .put(entry.getKey(), user);
+                    .put(getAllureId(extensionContext), user);
         }
     }
 
@@ -44,16 +44,16 @@ public abstract class CreateUserExtension implements BeforeEachCallback, Paramet
     public UserJson resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) throws ParameterResolutionException {
         GeneratedUser generatedUser = parameterContext.getParameter().getAnnotation(GeneratedUser.class);
         return extensionContext.getStore(ExtensionContext.Namespace.create(generatedUser.selector()))
-                .get(generatedUser.selector(), UserJson.class);
+                .get(getAllureId(extensionContext), UserJson.class);
     }
 
-    protected abstract UserJson createUserForTest(GenerateUser annotation);
+    protected abstract UserJson createUserForTest(GenerateUser annotation) throws IOException;
 
-    protected abstract List<UserJson> createFriendsIfPresent(GenerateUser annotation);
+    protected abstract List<UserJson> createFriendsIfPresent(GenerateUser annotation, UserJson user) throws IOException;
 
-    protected abstract List<UserJson> createIncomeInvitationsIfPresent(GenerateUser annotation);
+    protected abstract List<UserJson> createIncomeInvitationsIfPresent(GenerateUser annotation, UserJson user) throws IOException;
 
-    protected abstract List<UserJson> createOutcomeInvitationsIfPresent(GenerateUser annotation);
+    protected abstract List<UserJson> createOutcomeInvitationsIfPresent(GenerateUser annotation, UserJson user) throws IOException;
 
 
     private Map<GeneratedUser.Selector, GenerateUser> usersForTest(ExtensionContext extensionContext) {

@@ -8,7 +8,6 @@ import guru.qa.niffler.api.context.SessionStorageContext;
 import guru.qa.niffler.config.Config;
 import guru.qa.niffler.jupiter.annotation.ApiLogin;
 import guru.qa.niffler.jupiter.annotation.GenerateUser;
-import guru.qa.niffler.jupiter.annotation.GeneratedUser;
 import guru.qa.niffler.model.UserJson;
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.BeforeEachCallback;
@@ -18,6 +17,7 @@ import org.openqa.selenium.Cookie;
 import java.io.IOException;
 
 import static guru.qa.niffler.jupiter.extension.CreateUserExtension.NESTED;
+import static guru.qa.niffler.util.ExtensionUtil.getAllureId;
 
 public class ApiLoginExtension implements BeforeEachCallback, AfterTestExecutionCallback {
 
@@ -30,9 +30,8 @@ public class ApiLoginExtension implements BeforeEachCallback, AfterTestExecution
             GenerateUser user = annotation.user();
             if (user.handleAnnotation()) {
                 UserJson createdUser = extensionContext.getStore(NESTED).get(
-                        GeneratedUser.Selector.NESTED,
-                        UserJson.class
-                );
+                        getAllureId(extensionContext),
+                        UserJson.class);
                 doLogin(createdUser.getUsername(), createdUser.getPassword());
             } else {
                 doLogin(annotation.username(), annotation.password());

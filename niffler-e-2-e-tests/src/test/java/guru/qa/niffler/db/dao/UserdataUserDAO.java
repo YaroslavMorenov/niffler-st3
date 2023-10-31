@@ -9,4 +9,6 @@ public interface UserdataUserDAO {
     void deleteUserInUserData(UserDataUserEntity userId);
 
     UserDataUserEntity getUserInUserDataByUsername(String username);
+
+    void setFriendsInUserData(UserDataUserEntity user);
 }

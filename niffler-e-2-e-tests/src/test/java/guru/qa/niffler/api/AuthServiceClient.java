@@ -28,6 +28,8 @@ public class AuthServiceClient extends RestService {
     public void doLogin(String username, String password) throws IOException {
         SessionStorageContext sessionStorageContext = SessionStorageContext.getInstance();
         CookieContext cookieContext = CookieContext.getInstance();
+        sessionStorageContext.clearContext();
+        cookieContext.clearContext();
         authService.authorize(
                 "code",
                 "client",

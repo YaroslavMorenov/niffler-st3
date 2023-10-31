@@ -29,4 +29,9 @@ public class UserdataUserDAOHibernate extends JpaService implements UserdataUser
                 .setParameter("username", username)
                 .getSingleResult();
     }
+
+    @Override
+    public void setFriendsInUserData(UserDataUserEntity user) {
+        merge(user);
+    }
 }

@@ -35,6 +35,6 @@ public class FriendsWebTest extends BaseWebTest {
         loginPage.login(userForTest);
         new HeaderComponent()
                 .goToPeoplePage()
-                .checkInvitationToFriendSent();
+                .checkInvitationToFriendIncome();
     }
 }
